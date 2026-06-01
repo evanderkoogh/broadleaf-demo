@@ -3,7 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEMO_DIR="$SCRIPT_DIR/DemoSite"
-REPO_URL="https://github.com/BroadleafCommerce/DemoSite.git"
+REPO_URL="https://github.com/evanderkoogh/broadleaf-demosite.git"
 PID_FILE="$SCRIPT_DIR/.broadleaf.pids"
 LOG_DIR="$SCRIPT_DIR/logs"
 MAVEN_OPTS_VAL="-Xmx1g"
@@ -25,9 +25,12 @@ cmd_download() {
     echo "DemoSite already cloned at $DEMO_DIR — skipping."
     return
   fi
-  echo "Cloning DemoSite..."
-  git clone "$REPO_URL" "$DEMO_DIR"
-  echo "Done."
+  local scratch_branch="scratch_$(date +%Y-%m-%d)"
+  echo "Cloning DemoSite (branch: clean)..."
+  git clone --branch clean "$REPO_URL" "$DEMO_DIR"
+  echo "Switching to $scratch_branch..."
+  git -C "$DEMO_DIR" checkout -b "$scratch_branch"
+  echo "Done. Working branch: $scratch_branch"
 }
 
 cmd_build() {
