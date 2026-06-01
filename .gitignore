@@ -3,3 +3,4 @@ logs/
 otel/
 .broadleaf.pids
 .env
+.playwright-mcp/

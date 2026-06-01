@@ -15,7 +15,7 @@ if [[ -f "$SCRIPT_DIR/.env" ]]; then
 fi
 
 usage() {
-  echo "Usage: $0 {download|build|start|stop|restart|status|reset [--purge]}"
+  echo "Usage: $0 {download|build|start|stop|restart|status|reset [--purge]|clean}"
   echo ""
   echo "  download        Clone the DemoSite repo (skips if already present)"
   echo "  build           Build all modules (skips tests)"
@@ -25,6 +25,7 @@ usage() {
   echo "  status          Show whether servers are running"
   echo "  reset [--purge]  Check out 'clean' and create a new dated scratch branch."
   echo "                   With --purge, also delete the current branch locally and remotely."
+  echo "  clean           Remove logs/ and .playwright-mcp/ directories"
   exit 1
 }
 
@@ -195,6 +196,14 @@ cmd_reset() {
   echo "Done. Working branch: $scratch_branch"
 }
 
+cmd_clean() {
+  echo "Removing logs/..."
+  rm -rf "$LOG_DIR"
+  echo "Removing .playwright-mcp/..."
+  rm -rf "$SCRIPT_DIR/.playwright-mcp"
+  echo "Clean complete."
+}
+
 cmd_status() {
   if [[ ! -f "$PID_FILE" ]]; then
     echo "Servers are not running (no PID file)."
@@ -214,5 +223,6 @@ case "${1:-}" in
   restart)  cmd_stop; cmd_start ;;
   status)   cmd_status ;;
   reset)   cmd_reset "${2:-}" ;;
+  clean)   cmd_clean ;;
   *)       usage ;;
 esac
