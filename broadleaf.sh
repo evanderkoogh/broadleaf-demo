@@ -87,6 +87,17 @@ cmd_start() {
   fi
   SITE_PID=$!
 
+  # Wait for site to fully start (and bring up embedded Solr) before launching admin
+  echo "Waiting for site to boot..."
+  until grep -q "Started " "$LOG_DIR/site.log" 2>/dev/null; do
+    sleep 3
+    if ! kill -0 "$SITE_PID" 2>/dev/null; then
+      echo "Site process died. Check $LOG_DIR/site.log" >&2
+      rm -f "$PID_FILE"
+      exit 1
+    fi
+  done
+
   echo "Starting admin on port 8081..."
   if [[ -x "$DEMO_DIR/start-admin.sh" ]]; then
     MAVEN_OPTS="$MAVEN_OPTS_VAL" "$DEMO_DIR/start-admin.sh" > "$LOG_DIR/admin.log" 2>&1 &
@@ -97,16 +108,6 @@ cmd_start() {
   ADMIN_PID=$!
 
   echo "$SITE_PID $ADMIN_PID" > "$PID_FILE"
-
-  echo "Waiting for servers to boot..."
-  until grep -q "Started " "$LOG_DIR/site.log" 2>/dev/null; do
-    sleep 3
-    if ! kill -0 "$SITE_PID" 2>/dev/null; then
-      echo "Site process died. Check $LOG_DIR/site.log" >&2
-      rm -f "$PID_FILE"
-      exit 1
-    fi
-  done
 
   until grep -q "Started " "$LOG_DIR/admin.log" 2>/dev/null; do
     sleep 3
