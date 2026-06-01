@@ -9,14 +9,16 @@ LOG_DIR="$SCRIPT_DIR/logs"
 MAVEN_OPTS_VAL="-Xmx1g"
 
 usage() {
-  echo "Usage: $0 {download|build|start|stop|restart|status}"
+  echo "Usage: $0 {download|build|start|stop|restart|status|reset [--purge]}"
   echo ""
-  echo "  download   Clone the DemoSite repo (skips if already present)"
-  echo "  build      Build all modules (skips tests)"
-  echo "  start      Start site (port 8080) and admin (port 8081) in background"
-  echo "  stop       Stop running servers"
-  echo "  restart    Stop then start"
-  echo "  status     Show whether servers are running"
+  echo "  download        Clone the DemoSite repo (skips if already present)"
+  echo "  build           Build all modules (skips tests)"
+  echo "  start           Start site (port 8080) and admin (port 8081) in background"
+  echo "  stop            Stop running servers"
+  echo "  restart         Stop then start"
+  echo "  status          Show whether servers are running"
+  echo "  reset [--purge] Check out 'clean' and create a new dated scratch branch."
+  echo "                  With --purge, also delete the current branch locally and remotely."
   exit 1
 }
 
@@ -128,6 +130,57 @@ cmd_stop() {
   echo "Servers stopped."
 }
 
+make_scratch_branch() {
+  local base="scratch_$(date +%Y-%m-%d)"
+  local branch="$base"
+  local index=1
+  while git -C "$DEMO_DIR" rev-parse --verify "$branch" &>/dev/null; do
+    branch="${base}-${index}"
+    (( index++ ))
+  done
+  echo "$branch"
+}
+
+cmd_reset() {
+  local purge=false
+  if [[ "${1:-}" == "--purge" ]]; then
+    purge=true
+  fi
+
+  if [[ ! -d "$DEMO_DIR/.git" ]]; then
+    echo "DemoSite not found. Run '$0 download' first." >&2
+    exit 1
+  fi
+
+  local current_branch
+  current_branch="$(git -C "$DEMO_DIR" rev-parse --abbrev-ref HEAD)"
+
+  if $purge; then
+    if [[ "$current_branch" == "clean" ]]; then
+      echo "Cannot purge the 'clean' branch." >&2
+      exit 1
+    fi
+    echo "Switching to clean before purge..."
+    git -C "$DEMO_DIR" checkout clean
+    echo "Deleting local branch '$current_branch'..."
+    git -C "$DEMO_DIR" branch -D "$current_branch"
+    if git -C "$DEMO_DIR" ls-remote --exit-code origin "$current_branch" &>/dev/null; then
+      echo "Deleting remote branch '$current_branch'..."
+      git -C "$DEMO_DIR" push origin --delete "$current_branch"
+    else
+      echo "No remote branch '$current_branch' to delete."
+    fi
+  else
+    git -C "$DEMO_DIR" checkout clean
+  fi
+
+  local scratch_branch
+  scratch_branch="$(make_scratch_branch)"
+  echo "Creating branch '$scratch_branch'..."
+  git -C "$DEMO_DIR" checkout -b "$scratch_branch"
+  echo "Done. Working branch: $scratch_branch"
+}
+
 cmd_status() {
   if [[ ! -f "$PID_FILE" ]]; then
     echo "Servers are not running (no PID file)."
@@ -146,5 +199,6 @@ case "${1:-}" in
   stop)     cmd_stop ;;
   restart)  cmd_stop; cmd_start ;;
   status)   cmd_status ;;
+  reset)    cmd_reset "${2:-}" ;;
   *)        usage ;;
 esac
