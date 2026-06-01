@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "@playwright/mcp@latest",
+        "--args=--ignore-certificate-errors",
+        "--args=--allow-running-insecure-content"
+      ],
+      "env": {}
+    }
+  }
+}
