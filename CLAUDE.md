@@ -20,3 +20,7 @@ Each session simulates a fresh instrumentation engagement on the Broadleaf Comme
 - Default database: embedded HSQLDB — no external services needed
 - The `clean` branch in the fork (`evanderkoogh/broadleaf-demosite`) is the unmodified upstream baseline; never commit instrumentation changes there
 - Scratch branches (`scratch_YYYY-MM-DD[-N]`) are the working branches for each test run
+
+## Constraints
+
+**All OpenTelemetry instrumentation changes must be made inside `DemoSite/` only.** The root-level directory is the test harness and must never be modified as part of an instrumentation task. If an instrumentation skill tries to create or edit files outside `DemoSite/`, that is a mistake.
