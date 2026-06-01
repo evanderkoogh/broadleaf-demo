@@ -1,3 +1,5 @@
 DemoSite/
 logs/
+otel/
 .broadleaf.pids
+.env

@@ -7,6 +7,14 @@ REPO_URL="https://github.com/evanderkoogh/broadleaf-demosite.git"
 PID_FILE="$SCRIPT_DIR/.broadleaf.pids"
 LOG_DIR="$SCRIPT_DIR/logs"
 MAVEN_OPTS_VAL="-Xmx1g"
+AGENT_JAR="$SCRIPT_DIR/otel/opentelemetry-javaagent.jar"
+AGENT_URL="https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/latest/download/opentelemetry-javaagent.jar"
+
+# Load .env if present
+if [[ -f "$SCRIPT_DIR/.env" ]]; then
+  # shellcheck disable=SC1091
+  set -a; source "$SCRIPT_DIR/.env"; set +a
+fi
 
 usage() {
   echo "Usage: $0 {download|build|start|stop|restart|status|reset [--purge]}"
@@ -17,9 +25,21 @@ usage() {
   echo "  stop            Stop running servers"
   echo "  restart         Stop then start"
   echo "  status          Show whether servers are running"
-  echo "  reset [--purge] Check out 'clean' and create a new dated scratch branch."
-  echo "                  With --purge, also delete the current branch locally and remotely."
+  echo "  reset [--purge]  Check out 'clean' and create a new dated scratch branch."
+  echo "                   With --purge, also delete the current branch locally and remotely."
+  echo "  download-agent   Download the OpenTelemetry Java agent"
   exit 1
+}
+
+cmd_download_agent() {
+  if [[ -f "$AGENT_JAR" ]]; then
+    echo "OTel agent already present at $AGENT_JAR — skipping."
+    return
+  fi
+  mkdir -p "$(dirname "$AGENT_JAR")"
+  echo "Downloading OpenTelemetry Java agent..."
+  curl -L -o "$AGENT_JAR" "$AGENT_URL"
+  echo "Agent saved to $AGENT_JAR"
 }
 
 cmd_download() {
@@ -71,13 +91,28 @@ cmd_start() {
     exit 1
   fi
 
+  local otel_env=()
+  if [[ -f "$AGENT_JAR" ]]; then
+    if [[ -z "${HONEYCOMB_API_KEY:-}" ]]; then
+      echo "Warning: HONEYCOMB_API_KEY not set — OTel agent will run but not export to Honeycomb."
+      echo "  Set it in the environment or in $SCRIPT_DIR/.env"
+    fi
+    otel_env=(
+      "JAVA_TOOL_OPTIONS=-javaagent:$AGENT_JAR"
+      "OTEL_EXPORTER_OTLP_ENDPOINT=https://api.honeycomb.io"
+      "OTEL_EXPORTER_OTLP_HEADERS=x-honeycomb-team=${HONEYCOMB_API_KEY:-}"
+    )
+  fi
+
   echo "Starting site on port 8080..."
-  MAVEN_OPTS="$MAVEN_OPTS_VAL" mvn -f "$DEMO_DIR/site/pom.xml" spring-boot:run \
+  env "${otel_env[@]}" OTEL_SERVICE_NAME="broadleaf-site" \
+    MAVEN_OPTS="$MAVEN_OPTS_VAL" mvn -f "$DEMO_DIR/site/pom.xml" spring-boot:run \
     > "$LOG_DIR/site.log" 2>&1 &
   SITE_PID=$!
 
   echo "Starting admin on port 8081..."
-  MAVEN_OPTS="$MAVEN_OPTS_VAL" mvn -f "$DEMO_DIR/admin/pom.xml" spring-boot:run \
+  env "${otel_env[@]}" OTEL_SERVICE_NAME="broadleaf-admin" \
+    MAVEN_OPTS="$MAVEN_OPTS_VAL" mvn -f "$DEMO_DIR/admin/pom.xml" spring-boot:run \
     > "$LOG_DIR/admin.log" 2>&1 &
   ADMIN_PID=$!
 
@@ -199,6 +234,7 @@ case "${1:-}" in
   stop)     cmd_stop ;;
   restart)  cmd_stop; cmd_start ;;
   status)   cmd_status ;;
-  reset)    cmd_reset "${2:-}" ;;
-  *)        usage ;;
+  reset)           cmd_reset "${2:-}" ;;
+  download-agent)  cmd_download_agent ;;
+  *)               usage ;;
 esac
