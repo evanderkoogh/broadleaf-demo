@@ -4,3 +4,4 @@ otel/
 .broadleaf.pids
 .env
 .playwright-mcp/
+otelcol-*.ndjson
