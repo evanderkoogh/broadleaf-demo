@@ -52,7 +52,16 @@ BREAKDOWN: http.route
 Pick a root span trace ID and inspect it. A complete trace should show the HTTP handler
 at the root with database and/or business logic spans as children.
 
-### 6. No span explosion
+### 6. No rootless traces
+```
+COUNT
+FILTER: none.trace.parent_id does-not-exist
+```
+Expect: 0. A non-zero result means some traces have no root span — spans are arriving
+but the root was dropped (export timing issue, sampling mismatch, or shutdown before
+flush).
+
+### 7. No span explosion
 ```
 COUNT
 BREAKDOWN: name
@@ -67,5 +76,6 @@ added spans in a loop or on a trivial helper. Flag this as an anti-pattern.
 | --- | --- | --- |
 | 1–4 (minimum) | Required | Fail = instrumentation broken, not just incomplete |
 | 5 (trace completeness) | High value | Confirms context propagation works |
-| 6 (no explosion) | Disqualifier | One failure voids quality criteria |
+| 6 (no rootless traces) | Disqualifier | Indicates export or sampling misconfiguration |
+| 7 (no explosion) | Disqualifier | One failure voids quality criteria |
 | App-specific criteria | High value | See apps/<app>/EVALUATION.md |
