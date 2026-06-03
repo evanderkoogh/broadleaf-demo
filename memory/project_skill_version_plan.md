@@ -18,7 +18,9 @@ Two features to add to the broadleaf test harness. Not yet implemented as of 202
 **At instrument time**, Claude writes `DemoSite/.skill-version` (bash-sourceable):
 ```bash
 SKILL_BRANCH=evanderkoogh/java_misc
-SKILL_SHA=cf3acc8   # short 7-char SHA (user preference)
+SKILL_SHA=cf3acc8
+DEMOSITE_BRANCH=scratch_2026-06-01
+DEMOSITE_SHA=443a6b2   # short 7-char SHA (user preference)
 ```
 
 Detection: resolve symlink at `~/.claude/plugins/cache/honeycomb-plugins/honeycomb/1.1.0` → git repo root, then:
@@ -36,7 +38,7 @@ if [[ -f "$SCRIPT_DIR/.skill-version" ]]; then
 fi
 ```
 
-Attribute names: `service.instrumentation_skill.branch`, `service.instrumentation_skill.git_sha`.
+Attribute names: `service.instrumentation_skill.branch`, `service.instrumentation_skill.git_sha`, `service.demosite.branch`, `service.demosite.git_sha`.
 
 ---
 
@@ -44,18 +46,16 @@ Attribute names: `service.instrumentation_skill.branch`, `service.instrumentatio
 
 Two files, one entry appended/written per session by Claude:
 
-**Harness log** (persistent, never reset): `instrumentation-log.md` in harness root.
+One file per scratch branch: `DemoSite/INSTRUMENTATION.md`, committed alongside the instrumentation changes.
 
-**Per-branch record**: `DemoSite/INSTRUMENTATION.md` committed to the scratch branch.
-
-Entry format (both):
+Entry format:
 ```markdown
 ## 2026-06-01T05:35:00Z — scratch_2026-06-01
 - **Skill:** evanderkoogh/java_misc @ cf3acc8
 - **Prompt:** "reset and purge the current demosite and reapply otel instrumentation from scratch using the skill"
 ```
 
-Claude writes these immediately after applying the skill, before committing.
+Claude writes this immediately after applying the skill, before committing.
 
 ---
 
