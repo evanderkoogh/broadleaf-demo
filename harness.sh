@@ -267,14 +267,23 @@ harness_instrument() {
   skill_branch=$(git -C "$claude_plugin_root" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
   skill_sha=$(git -C "$claude_plugin_root" rev-parse --short HEAD 2>/dev/null || echo "unknown")
 
-  local preamble_file="$APP_DIR/instrument-preamble.md"
+  local subst=(-e "s|%REPO_DIR%|$REPO_DIR|g" -e "s|%API_KEY%|$api_key|g" -e "s|%OTLP_ENDPOINT%|$otlp_endpoint|g")
+
+  local app_preamble=""
+  if [[ -f "$APP_DIR/instrument-preamble.md" ]]; then
+    app_preamble=$(sed "${subst[@]}" "$APP_DIR/instrument-preamble.md")
+  fi
+
+  local root_preamble=""
+  if [[ -f "$SCRIPT_DIR/instrument-preamble.md" ]]; then
+    root_preamble=$(sed "${subst[@]}" "$SCRIPT_DIR/instrument-preamble.md")
+  fi
+
   local preamble=""
-  if [[ -f "$preamble_file" ]]; then
-    preamble=$(sed \
-      -e "s|%REPO_DIR%|$REPO_DIR|g" \
-      -e "s|%API_KEY%|$api_key|g" \
-      -e "s|%OTLP_ENDPOINT%|$otlp_endpoint|g" \
-      "$preamble_file")
+  if [[ -n "$app_preamble" && -n "$root_preamble" ]]; then
+    preamble="$app_preamble"$'\n\n'"$root_preamble"
+  else
+    preamble="${app_preamble}${root_preamble}"
   fi
 
   local prompt_file="$SCRIPT_DIR/.instrument-prompt.md"
