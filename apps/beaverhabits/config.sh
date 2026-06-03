@@ -4,7 +4,7 @@
 APP_NAME="beaverhabits"
 APP_REPO="https://github.com/evanderkoogh/beaverhabits.git"
 APP_CLEAN_BRANCH="clean"
-APP_HTTP_PORT=8080
+APP_HTTP_PORT=9001
 APP_OTEL_AGENT_TYPE="python"
 
 cmd_build() {
@@ -12,6 +12,7 @@ cmd_build() {
     echo "Repo not found. Run 'download' first." >&2
     exit 1
   fi
+  export PATH="$HOME/.local/bin:$PATH"
   echo "Installing dependencies with uv..."
   (cd "$REPO_DIR" && uv venv && uv sync)
   echo "Build complete."
@@ -32,6 +33,7 @@ cmd_start() {
 
   echo "Starting beaverhabits on port $APP_HTTP_PORT..."
   (
+    export PATH="$HOME/.local/bin:$PATH"
     cd "$REPO_DIR"
     HABITS_STORAGE=USER_DISK \
     NICEGUI_STORAGE_SECRET=test-secret \
@@ -39,7 +41,7 @@ cmd_start() {
     OTEL_EXPORTER_OTLP_ENDPOINT="${OTEL_EXPORTER_OTLP_ENDPOINT:-https://api.honeycomb.io}" \
     OTEL_EXPORTER_OTLP_HEADERS="${OTEL_EXPORTER_OTLP_HEADERS:-}" \
     OTEL_SERVICE_NAME="${OTEL_SERVICE_NAME:-beaverhabits}" \
-    ./start.sh prd
+    uv run uvicorn beaverhabits.main:app --workers 1 --port 9001 --host 0.0.0.0
   ) > "$LOG_DIR/beaverhabits.log" 2>&1 &
   local pid=$!
   echo "$pid" > "$PID_FILE"
