@@ -1,89 +1,49 @@
-# Instrumentation Evaluation Checklist
+# Broadleaf-Specific Evaluation Criteria
 
-After applying instrumentation and running `./broadleaf.sh traffic`, verify the following
-in Honeycomb against the `broadleaf-site` dataset (last 15 minutes).
+Run `./broadleaf.sh traffic` first, then check these in Honeycomb against the
+`broadleaf-site` dataset (last 15 minutes). These supplement the common criteria
+in the root `EVALUATION.md`.
 
-## Minimum criteria (must pass)
+## Expected HTTP routes (criterion 2)
 
-### 1. Spans are arriving
-```
-COUNT
-```
-Expect: non-zero. If zero, check `OTEL_EXPORTER_OTLP_HEADERS` in `.env` and that
-`service.instrumentation_skill.branch` is set on spans (confirms `.skill-version` loaded).
+Breakdown by `http.route` should include: `/hot-sauces`, `/hot-sauces/**`, `/cart/**`,
+`/search`, `/merchandise`. If missing, the OTel Java agent is not attached or the wrong
+classpath is used.
 
-### 2. HTTP handler spans exist
-```
-COUNT
-BREAKDOWN: http.route
-FILTER: http.route exists
-```
-Expect: routes like `/hot-sauces`, `/hot-sauces/**`, `/cart/**`, etc. are present.
-If missing: the OTel Java agent is not attached or the wrong classpath is used.
+## Expected database system (criterion 3)
 
-### 3. Database spans exist
-```
-COUNT
-BREAKDOWN: db.system
-FILTER: db.system exists
-```
-Expect: `hsqldb` rows. If missing: JDBC instrumentation is not working — likely the
-agent is not loaded on the correct JVM.
+`db.system` breakdown should show `hsqldb`. If missing, JDBC instrumentation is not
+working — likely the agent is not loaded on the correct JVM.
 
-### 4. Skill version is tagged
-```
-COUNT
-BREAKDOWN: service.instrumentation_skill.branch, service.instrumentation_skill.git_sha
-FILTER: service.instrumentation_skill.branch exists
-```
-Expect: the branch and SHA from `DemoSite/.skill-version`. If missing: `.skill-version`
-was not found by the start script.
+## Expected trace structure (criterion 5)
 
-## Quality criteria (good instrumentation)
-
-### 5. Business context attributes on cart operations
-```
-COUNT
-BREAKDOWN: product.id
-FILTER: http.route = /cart/add (or similar)
-```
-Expect: `product.id` populated. Indicates the skill added custom attributes beyond
-auto-instrumentation defaults.
-
-### 6. Checkout spans have order context
-```
-COUNT
-BREAKDOWN: payment.type, order.item_count
-FILTER: http.route contains checkout
-```
-Expect: `payment.type` and `order.item_count` on checkout spans.
-
-### 7. Trace completeness — root spans have children
-```
-COUNT
-FILTER: parent_id does-not-exist
-BREAKDOWN: http.route
-```
-Pick a root span trace ID and inspect it. A complete trace should show:
+A complete trace should show:
 - HTTP handler (root)
   - Spring MVC dispatch
     - JDBC queries
     - (optional) custom business spans
 
-### 8. No span explosion
+## Additional quality criteria
+
+### 7. Business context on cart operations
 ```
 COUNT
-BREAKDOWN: name
-ORDER: COUNT descending
+BREAKDOWN: product.id
+FILTER: http.route = /cart/add (or similar)
 ```
-If a single span name accounts for millions of spans in a short window, the skill likely
-added spans in a loop or on a trivial helper. Flag this as an anti-pattern.
+Expect: `product.id` populated. Indicates custom attributes beyond auto-instrumentation.
 
-## Scoring guide
+### 8. Checkout spans have order context
+```
+COUNT
+BREAKDOWN: payment.type, order.item_count
+FILTER: http.route contains checkout
+```
+Expect: `payment.type` and `order.item_count` present on checkout spans.
+
+## Scoring additions
 
 | Criteria | Weight | Notes |
 | --- | --- | --- |
-| 1–4 (minimum) | Required | Fail = instrumentation broken, not just incomplete |
-| 5–6 (business attributes) | High value | Distinguishes skill quality |
-| 7 (trace completeness) | High value | Confirms context propagation works |
-| 8 (no explosion) | Disqualifier | One failure voids quality criteria |
+| 7 (cart product.id) | High value | Business context beyond defaults |
+| 8 (checkout context) | High value | Distinguishes skill quality |

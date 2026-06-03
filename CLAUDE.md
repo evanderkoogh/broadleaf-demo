@@ -31,7 +31,7 @@ Each session simulates a fresh instrumentation engagement on a target applicatio
 5. Write `apps/broadleaf/DemoSite/.skill-version` and `apps/broadleaf/DemoSite/INSTRUMENTATION.md` (see below)
 6. `./broadleaf.sh start` — start site and admin
 7. `./broadleaf.sh traffic` — generate representative traffic across key paths
-8. Evaluate against `apps/broadleaf/EVALUATION.md` using Honeycomb queries
+8. Evaluate against `EVALUATION.md` (common criteria) and `apps/broadleaf/EVALUATION.md` (Broadleaf-specific) using Honeycomb queries
 9. Repeat from step 1
 
 > **Note on bootstrap:** The embedded HSQLDB stores its files under `/tmp/broadleaf-hsqldb`. These survive normal session restarts but are cleared on system reboot. `bootstrap` seeds the schema via `mvn spring-boot:run` once so subsequent `start` commands can use the faster `java -cp` (exploded JAR) path. If `start` fails with a schema-related error, run `bootstrap` again.
