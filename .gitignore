@@ -1,4 +1,5 @@
 apps/*/DemoSite/
+runs.jsonl
 logs/
 otel/
 .harness.pids

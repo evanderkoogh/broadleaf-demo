@@ -121,25 +121,58 @@ Criteria to implement as functions:
 - `check_cart_product_id(dataset)` — Broadleaf-specific
 - `check_checkout_context(dataset)` — Broadleaf-specific
 
-### Step 5 — Report output
-Collect pass/fail for each criterion, write a JSON results file:
+### Step 5 — Agent efficiency metrics
+
+The SDK response object carries instrumentation efficiency data directly — no parsing
+needed. Capture these immediately after `query()` completes:
+
+```python
+# After the async for loop over query() events:
+metrics = {
+    "duration_ms": total_duration_ms,   # wall time from first to last event
+    "tool_uses": num_turns,             # total tool calls made by the agent
+    "input_tokens": usage.input_tokens,
+    "output_tokens": usage.output_tokens,
+    "total_tokens": usage.input_tokens + usage.output_tokens,
+}
+```
+
+These are the primary efficiency signals: token cost tells you how expensive a run
+was, tool_uses tells you how much the agent had to explore, duration tells you how
+long to wait.
+
+### Step 6 — Report output
+
+Append one record to `runs.jsonl` combining efficiency metrics, quality criteria,
+and run metadata:
 
 ```json
 {
-  "run_id": "2026-06-10T09:00:00Z",
-  "skill_branch": "main",
-  "skill_sha": "abc1234",
+  "timestamp": "2026-06-10T09:00:00Z",
+  "app": "beaverhabits",
+  "skill_branch": "python-misc",
+  "skill_sha": "2927163",
+  "agent": {
+    "duration_ms": 112202,
+    "tool_uses": 21,
+    "input_tokens": 45000,
+    "output_tokens": 8526,
+    "total_tokens": 53526
+  },
   "criteria": {
-    "spans_arriving": { "pass": true, "value": 6861 },
-    "http_routes": { "pass": false, "value": ["/*", "/"], "expected": "specific routes" },
-    "db_spans": { "pass": true, "value": "hsqldb" },
+    "spans_arriving": { "pass": true, "value": 34 },
+    "http_routes": { "pass": false },
+    "db_spans": { "pass": true, "value": "sqlite" },
     "skill_version": { "pass": true },
-    "no_explosion": { "pass": true, "top_count": 957 },
-    "cart_product_id": { "pass": false },
-    "checkout_context": { "pass": false }
+    "rootless_traces": { "pass": true, "value": 0 },
+    "no_explosion": { "pass": true, "top_count": 19 }
   }
 }
 ```
+
+`runs.jsonl` accumulates across runs (gitignored) so you can compare efficiency and
+quality across skill branches over time: fewer tool calls and lower tokens for the
+same quality score = a more effective skill.
 
 ---
 
@@ -149,10 +182,10 @@ Collect pass/fail for each criterion, write a JSON results file:
 run.py                    # Main entry point
 lib/
   harness.py              # Subprocess wrappers for harness.sh commands
-  instrumentation.py      # SDK agent invocation
+  instrumentation.py      # SDK agent invocation + efficiency metric capture
   evaluation.py           # Honeycomb API query helpers + criterion checks
-  report.py               # JSON/stdout report formatting
-results/                  # Output JSON files per run (gitignored)
+  metrics.py              # runs.jsonl append, stdout summary formatting
+runs.jsonl                # Append-only run history: efficiency + quality (gitignored)
 requirements.txt          # claude-code-sdk, httpx, python-dotenv
 ```
 
