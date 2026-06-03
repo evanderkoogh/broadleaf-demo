@@ -195,6 +195,7 @@ harness_reset() {
     fi
     echo "Switching to $clean_branch before purge..."
     git -C "$REPO_DIR" checkout "$clean_branch"
+    git -C "$REPO_DIR" clean -fd
     echo "Deleting local branch '$current_branch'..."
     git -C "$REPO_DIR" branch -D "$current_branch"
     if git -C "$REPO_DIR" ls-remote --exit-code origin "$current_branch" &>/dev/null; then
@@ -205,6 +206,7 @@ harness_reset() {
     fi
   else
     git -C "$REPO_DIR" checkout "$clean_branch"
+    git -C "$REPO_DIR" clean -fd
   fi
   local scratch_branch
   scratch_branch="$(make_scratch_branch)"

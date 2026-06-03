@@ -14,7 +14,7 @@ cmd_build() {
   fi
   export PATH="$HOME/.local/bin:$PATH"
   echo "Installing dependencies with uv..."
-  (cd "$REPO_DIR" && uv venv && uv sync)
+  (cd "$REPO_DIR" && uv sync)
   echo "Build complete."
 }
 
