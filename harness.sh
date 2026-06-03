@@ -286,6 +286,12 @@ harness_instrument() {
     preamble="${app_preamble}${root_preamble}"
   fi
 
+  # Write .skill-version so cmd_start can tag spans regardless of language
+  cat > "$REPO_DIR/.skill-version" <<EOF
+SKILL_BRANCH=$skill_branch
+SKILL_SHA=$skill_sha
+EOF
+
   local prompt_file="$SCRIPT_DIR/.instrument-prompt.md"
   {
     if [[ -n "$preamble" ]]; then

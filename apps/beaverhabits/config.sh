@@ -31,6 +31,13 @@ cmd_start() {
     exit 1
   fi
 
+  local otel_resource_attrs=""
+  if [[ -f "$REPO_DIR/.skill-version" ]]; then
+    # shellcheck disable=SC1090
+    source "$REPO_DIR/.skill-version"
+    otel_resource_attrs="service.instrumentation_skill.branch=${SKILL_BRANCH},service.instrumentation_skill.git_sha=${SKILL_SHA}"
+  fi
+
   echo "Starting beaverhabits on port $APP_HTTP_PORT..."
   (
     export PATH="$HOME/.local/bin:$PATH"
@@ -41,6 +48,7 @@ cmd_start() {
     OTEL_EXPORTER_OTLP_ENDPOINT="${OTEL_EXPORTER_OTLP_ENDPOINT:-https://api.honeycomb.io}" \
     OTEL_EXPORTER_OTLP_HEADERS="${OTEL_EXPORTER_OTLP_HEADERS:-}" \
     OTEL_SERVICE_NAME="${OTEL_SERVICE_NAME:-beaverhabits}" \
+    OTEL_RESOURCE_ATTRIBUTES="$otel_resource_attrs" \
     uv run uvicorn beaverhabits.main:app --workers 1 --port 9001 --host 0.0.0.0
   ) > "$LOG_DIR/beaverhabits.log" 2>&1 &
   local pid=$!
