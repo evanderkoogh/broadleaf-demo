@@ -292,10 +292,14 @@ harness_instrument() {
     preamble="${app_preamble}${root_preamble}"
   fi
 
+  local skill_commit_msg
+  skill_commit_msg=$(git -C "$skill_git_root" log -1 --format=%s 2>/dev/null || echo "unknown")
+
   # Write .skill-version so cmd_start can tag spans regardless of language
   cat > "$REPO_DIR/.skill-version" <<EOF
 SKILL_BRANCH=$skill_branch
 SKILL_SHA=$skill_sha
+SKILL_COMMIT_MSG="$skill_commit_msg"
 EOF
 
   local prompt_file="$SCRIPT_DIR/.instrument-prompt.md"

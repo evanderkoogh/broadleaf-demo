@@ -35,7 +35,7 @@ cmd_start() {
   if [[ -f "$REPO_DIR/.skill-version" ]]; then
     # shellcheck disable=SC1090
     source "$REPO_DIR/.skill-version"
-    otel_resource_attrs="service.instrumentation_skill.branch=${SKILL_BRANCH},service.instrumentation_skill.git_sha=${SKILL_SHA}"
+    otel_resource_attrs="service.instrumentation_skill.branch=${SKILL_BRANCH},service.instrumentation_skill.git_sha=${SKILL_SHA},service.instrumentation_skill.commit=${SKILL_COMMIT_MSG}"
   fi
 
   echo "Starting beaverhabits on port $APP_HTTP_PORT..."
