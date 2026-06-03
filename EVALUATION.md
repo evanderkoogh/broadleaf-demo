@@ -52,14 +52,17 @@ BREAKDOWN: http.route
 Pick a root span trace ID and inspect it. A complete trace should show the HTTP handler
 at the root with database and/or business logic spans as children.
 
-### 6. No rootless traces
+### 6. No rootless multi-span traces
 ```
 COUNT
 FILTER: none.trace.parent_id does-not-exist
+        any.trace.parent_id exists
 ```
-Expect: 0. A non-zero result means some traces have no root span — spans are arriving
-but the root was dropped (export timing issue, sampling mismatch, or shutdown before
-flush).
+Expect: 0. `none.trace.parent_id does-not-exist` finds traces with no root span.
+`any.trace.parent_id exists` restricts to multi-span traces, exempting single-span
+background operations that legitimately have no parent. A non-zero result means a
+multi-span trace lost its root — typically an export timing issue, sampling mismatch,
+or shutdown before flush.
 
 ### 7. No span explosion
 ```
