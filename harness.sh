@@ -263,9 +263,11 @@ harness_instrument() {
   local skill_content
   skill_content=$(sed "s|\${CLAUDE_PLUGIN_ROOT}|$claude_plugin_root|g" "$skill_file")
 
+  # The cache is an extracted copy with no .git; the marketplace symlink points to the actual repo
+  local skill_git_root="$HOME/.claude/plugins/marketplaces/honeycomb-plugins"
   local skill_branch skill_sha
-  skill_branch=$(git -C "$claude_plugin_root" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
-  skill_sha=$(git -C "$claude_plugin_root" rev-parse --short HEAD 2>/dev/null || echo "unknown")
+  skill_branch=$(git -C "$skill_git_root" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
+  skill_sha=$(git -C "$skill_git_root" rev-parse --short HEAD 2>/dev/null || echo "unknown")
 
   local subst=(-e "s|%REPO_DIR%|$REPO_DIR|g" -e "s|%API_KEY%|$api_key|g" -e "s|%OTLP_ENDPOINT%|$otlp_endpoint|g")
 
