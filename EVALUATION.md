@@ -17,10 +17,11 @@ app is configured to export to Honeycomb.
 ```
 COUNT
 BREAKDOWN: http.route
-FILTER: http.route exists
+FILTER: span.kind = server
+        http.route exists
 ```
-Expect: meaningful route names are present. If missing, the OTel SDK/agent is not
-intercepting HTTP handlers.
+Expect: meaningful route names are present on server spans. If missing, the OTel
+SDK/agent is not intercepting HTTP handlers.
 
 ### 3. Database spans exist
 ```

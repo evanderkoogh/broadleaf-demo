@@ -6,9 +6,9 @@ in the root `EVALUATION.md`.
 
 ## Expected HTTP routes (criterion 2)
 
-Breakdown by `http.route` should include: `/hot-sauces`, `/hot-sauces/**`, `/cart/**`,
-`/search`, `/merchandise`. If missing, the OTel Java agent is not attached or the wrong
-classpath is used.
+Filter to `span.kind = server` + `http.route exists`. Breakdown by `http.route` should
+include: `/hot-sauces`, `/hot-sauces/**`, `/cart/**`, `/search`, `/merchandise`. If
+missing, the OTel Java agent is not attached or the wrong classpath is used.
 
 ## Expected database system (criterion 3)
 
