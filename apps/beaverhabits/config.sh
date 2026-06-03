@@ -31,6 +31,16 @@ cmd_start() {
     exit 1
   fi
 
+  # Fail fast: async SQLAlchemy engine passed without .sync_engine crashes at startup.
+  if grep -r "SQLAlchemyInstrumentor" "$REPO_DIR" --include="*.py" -l 2>/dev/null | \
+     xargs grep -l "instrument.*engine=" 2>/dev/null | \
+     xargs grep -v "sync_engine" 2>/dev/null | \
+     grep -q "instrument.*engine="; then
+    echo "ERROR: SQLAlchemyInstrumentor called with async engine (missing .sync_engine)." >&2
+    echo "Fix: change engine=X to engine=X.sync_engine in telemetry.py." >&2
+    exit 1
+  fi
+
   local otel_resource_attrs=""
   if [[ -f "$REPO_DIR/.skill-version" ]]; then
     # shellcheck disable=SC1090
