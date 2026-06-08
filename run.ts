@@ -90,6 +90,7 @@ async function main(): Promise<void> {
 
   // --- Start ---
   console.log("→ start");
+  harness(app, "stop");  // no-op if nothing is running; clears stale PID file
   try {
     harnessStart(app);
   } catch (err) {
