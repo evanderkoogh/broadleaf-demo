@@ -1,6 +1,7 @@
 import { config } from "dotenv";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
+import { writeFileSync } from "fs";
 import {
   harness,
   harnessStart,
@@ -22,14 +23,23 @@ if (!app) {
   process.exit(1);
 }
 
-const apiKey = (() => {
+// Ingest key — forwarded to the instrumentation agent for OTLP export
+const ingestKey = (() => {
   const headers = process.env.OTEL_EXPORTER_OTLP_HEADERS ?? "";
   const match = headers.match(/x-honeycomb-team=([^,]+)/);
   return match?.[1] ?? "";
 })();
 
-if (!apiKey) {
+// Query key — used by evaluation to read from Honeycomb REST API
+// Must have "Query Data" permission (ingest keys are write-only)
+const queryApiKey = process.env.HONEYCOMB_QUERY_API_KEY ?? "";
+
+if (!ingestKey) {
   console.error("OTEL_EXPORTER_OTLP_HEADERS not set in .env");
+  process.exit(1);
+}
+if (!queryApiKey) {
+  console.error("HONEYCOMB_QUERY_API_KEY not set in .env (needs Query Data permission)");
   process.exit(1);
 }
 
@@ -57,9 +67,16 @@ async function main(): Promise<void> {
 
   // --- Instrumentation agent ---
   console.log("→ running instrumentation agent");
-  const agentMetrics = await runInstrumentation(app, apiKey);
+  const agentMetrics = await runInstrumentation(app, ingestKey);
   console.log(
     `  done: ${agentMetrics.tool_uses} tool calls · ${agentMetrics.total_tokens} tokens · ${(agentMetrics.duration_ms / 1000).toFixed(1)}s`
+  );
+
+  // Re-write .skill-version: the agent may have overwritten it with its own content
+  const versionPath = resolve(__dirname, "checkouts", app, ".skill-version");
+  writeFileSync(
+    versionPath,
+    `SKILL_BRANCH=${skill.branch}\nSKILL_SHA=${skill.sha}\nSKILL_COMMIT_MSG="${skill.commit}"\n`
   );
 
   const baseRecord = {
@@ -99,7 +116,7 @@ async function main(): Promise<void> {
 
   // --- Evaluate ---
   console.log("→ evaluating");
-  const criteria = await evaluate(dataset, apiKey);
+  const criteria = await evaluate(dataset, queryApiKey);
 
   const record = {
     ...baseRecord,
